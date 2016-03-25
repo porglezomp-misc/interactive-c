@@ -2,11 +2,12 @@
 
 #include <stdio.h>
 
-typedef struct state {
-} state;
+struct state {
+};
 
 static state *state_init() {
-  return 0;
+  state *s = wrapper_malloc(sizeof(state));
+  return s;
 }
 
 static void state_finalize(state *s) {
