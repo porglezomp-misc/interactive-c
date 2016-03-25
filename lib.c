@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 struct state {
+  int nothing_interesting;
 };
 
 static state *state_init() {
