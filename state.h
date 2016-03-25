@@ -6,11 +6,8 @@
 struct state;
 typedef struct state state;
 
-/* should be defined in the wrapper */
-void *wrapper_malloc(int size);
-
 typedef struct state_api {
-  struct state *(*init)();
+  struct state *(*init)(void *(*allocator)(int size));
   void (*finalize)(struct state *s);
   void (*reload)(struct state *s);
   void (*unload)(struct state *s);
@@ -18,6 +15,6 @@ typedef struct state_api {
 } state_api;
 
 /* should be defined in the library */
-extern const state_api STATE_API;
+extern state_api STATE_API;
 
 #endif

@@ -6,8 +6,8 @@ struct state {
   int nothing_interesting;
 };
 
-static state *state_init() {
-  state *s = wrapper_malloc(sizeof(state));
+static state *state_init(void *(*allocate)(int)) {
+  state *s = allocate(sizeof(state));
   return s;
 }
 
@@ -28,7 +28,7 @@ static bool state_step(state *s) {
   return s != 0;
 }
 
-const state_api STATE_API = {
+state_api STATE_API = {
   .init = state_init,
   .finalize = state_finalize,
   .reload = state_reload,
