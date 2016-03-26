@@ -7,3 +7,4 @@ Program.out: main.c libstateful.so
 libstateful.so: lib.c
 	gcc -c lib.c ${FLAGS} -fpic -std=c99
 	gcc -shared -o $@ lib.o -std=c99
+	pkill Program.out --signal SIGUSR1 || true

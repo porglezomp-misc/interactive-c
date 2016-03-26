@@ -18,11 +18,7 @@ typedef struct program_state {
 
 static void *wrapper_malloc(int size) { return calloc(1, size); }
 
-static volatile bool should_reload = true;
-static bool running = true;
-
 static int reload_program(program_state *program) {
-  puts("RELOADING");
   bool first_load = false;
   if (program->library) {
     program->api.unload(program->state);
@@ -39,17 +35,26 @@ static int reload_program(program_state *program) {
   program->api.reload(program->state);
 
   if (first_load) {
-    puts("INIT");
     program->state = program->api.init(wrapper_malloc);
   }
   return 0;
 }
 
+static volatile bool should_reload = true;
+static bool running = true;
+
+void enable_reload(int _) {
+  (void) _;
+  signal(SIGUSR1, enable_reload);
+  should_reload = true;
+}
+
 int main() {
+  signal(SIGUSR1, enable_reload);
   program_state *program = calloc(1, sizeof *program);
   while (running) {
-    should_reload = true;
     if (should_reload) {
+      should_reload = false;
       if (reload_program(program)) {
         printf("%s\n", dlerror());
         continue;
