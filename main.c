@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <signal.h>
 #include <unistd.h>
 #include <dlfcn.h>
 
@@ -9,45 +10,55 @@
 
 const char *libfile = "libstateful.so";
 
-state_api STATE_API;
-void *wrapper_malloc(int size) { return calloc(1, size); }
+typedef struct program_state {
+  void *library;
+  state_api api;
+  struct state *state;
+} program_state;
 
-static bool first_load = true;
+static void *wrapper_malloc(int size) { return calloc(1, size); }
+
 static volatile bool should_reload = true;
 static bool running = true;
 
-int main() {
-  void *library = NULL;
-  state_api *api = NULL;
-  struct state *s = NULL;
+static int reload_program(program_state *program) {
+  puts("RELOADING");
+  bool first_load = false;
+  if (program->library) {
+    program->api.unload(program->state);
+    dlclose(program->library);
+  } else {
+    first_load = true;
+  }
 
+  program->library = dlopen(libfile, RTLD_LAZY);
+  if (!program->library) return 1;
+  state_api *api = dlsym(program->library, "STATE_API");
+  if (!api) return 2;
+  memcpy(&program->api, api, sizeof(program->api));
+  program->api.reload(program->state);
+
+  if (first_load) {
+    puts("INIT");
+    program->state = program->api.init(wrapper_malloc);
+  }
+  return 0;
+}
+
+int main() {
+  program_state *program = calloc(1, sizeof *program);
   while (running) {
     should_reload = true;
     if (should_reload) {
-      should_reload = false;
-      if (library) {
-        dlclose(library);
-      }
-      library = dlopen(libfile, RTLD_LAZY);
-      if (!library) {
-        printf("Error opening library: %s\n", dlerror());
+      if (reload_program(program)) {
+        printf("%s\n", dlerror());
         continue;
-      }
-      api = dlsym(library, "STATE_API");
-      if (!api) {
-        printf("error: %s\n", dlerror());
-        continue;
-      }
-      memcpy(&STATE_API, api, sizeof(STATE_API));
-      if (first_load) {
-        first_load = false;
-        s = STATE_API.init(wrapper_malloc);
       }
     }
-    STATE_API.step(s);
+    program->api.step(program->state);
     sleep(1);
   }
-  STATE_API.finalize(s);
+  program->api.finalize(program->state);
   return 0;
 }
 
