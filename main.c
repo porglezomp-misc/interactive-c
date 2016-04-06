@@ -32,11 +32,10 @@ static int reload_program(program_state *program) {
   state_api *api = dlsym(program->library, "STATE_API");
   if (!api) return 2;
   memcpy(&program->api, api, sizeof(program->api));
-  program->api.reload(program->state);
-
   if (first_load) {
     program->state = program->api.init(wrapper_malloc);
   }
+  program->api.reload(program->state);
   return 0;
 }
 

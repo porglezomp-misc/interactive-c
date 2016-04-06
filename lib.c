@@ -3,7 +3,8 @@
 #include <stdio.h>
 
 struct state {
-  int nothing_interesting;
+  void *(*allocate)(int);
+  int a, b;
 };
 
 static state *state_init(void *(*allocate)(int)) {
@@ -16,7 +17,7 @@ static void state_finalize(state *s) {
 }
 
 static void state_reload(state *s) {
-  (void) s;
+  s->a = 0, s->b = 1;
 }
 
 static void state_unload(state *s) {
@@ -24,8 +25,11 @@ static void state_unload(state *s) {
 }
 
 static bool state_step(state *s) {
-  puts("Hello, World!");
-  return s != 0;
+  printf("%d\n", s->a);
+  int t = s->a;
+  s->a = s->b;
+  s->b = t + s->b;
+  return false;
 }
 
 state_api STATE_API = {
